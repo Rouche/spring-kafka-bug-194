@@ -50,6 +50,7 @@ class SecondTestIT {
     }
 
     @Test
+    @SuppressWarnings("FutureReturnValueIgnored")
     void doit_lancer_le_job_d_envoi_a_ima_et_construire_le_fichier() throws Exception {
 
         // Given

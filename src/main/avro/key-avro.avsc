@@ -1,0 +1,8 @@
+{
+  "namespace":"ms.kafkatest.avro",
+  "name": "KeyAvro",
+  "type":"record",
+  "fields":[
+        {"name": "id", "type": "string", "default" : "key"}
+    ]
+}

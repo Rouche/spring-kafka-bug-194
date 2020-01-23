@@ -1,14 +1,15 @@
 package ms.kafkatest.kafka;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
@@ -16,13 +17,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import ms.kafkatest.messaging.avro.GenericAvroMessage;
 import ms.kafkatest.utils.KafkaRecordItemReader;
 import ms.kafkatest.utils.KafkaRecordItemReaderBuilder;
@@ -39,16 +43,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
     MockSchemaRegistryConfig.class
 })
-@EmbeddedKafka(partitions = 1, topics = {EmbeddedKafkaTestIT.TOPIC_NAME})
+@EmbeddedKafka(partitions = 1, topics = {"topic1"})
 @EnableAutoConfiguration
 @DirtiesContext
-public class EmbeddedKafkaTestIT {
-
-    protected static final String TOPIC_NAME = "topic1";
+public class EmbeddedKafka2TestIT {
 
     @Autowired
-    private DefaultKafkaProducerFactory defaultKafkaProducerFactory;
+    @Qualifier(value = EmbeddedKafkaBroker.BEAN_NAME)
+    private EmbeddedKafkaBroker embeddedKafkaBroker;
 
+    @Autowired
+    private KafkaAvroSerializer kafkaAvroSerializer;
     @Autowired
     private KafkaAvroDeserializer kafkaAvroDeserializer;
 
@@ -59,9 +64,19 @@ public class EmbeddedKafkaTestIT {
 
     @BeforeEach
     void setUp() {
+        // creates template to use mocked serializer
+        // set up the Kafka producer properties
+        Map<String, Object> senderProperties = KafkaTestUtils.senderProps(embeddedKafkaBroker.getBrokersAsString());
+        // create a Kafka producer factory
+        DefaultKafkaProducerFactory producerFactory = new DefaultKafkaProducerFactory(senderProperties);
+        producerFactory.setKeySerializer(kafkaAvroSerializer);
+        producerFactory.setValueSerializer(kafkaAvroSerializer);
+
         // create a Kafka template
-        template = new KafkaTemplate<>(defaultKafkaProducerFactory);
+        template = new KafkaTemplate<>(producerFactory);
         // set the default topic to send to
+        template.setDefaultTopic("topic1");
+
     }
 
     @Test
@@ -71,7 +86,7 @@ public class EmbeddedKafkaTestIT {
         message.setPayload("Payload test");
 
         // When
-        ListenableFuture<SendResult<String, GenericAvroMessage>> future = template.send(new ProducerRecord<>(TOPIC_NAME, "key", message));
+        ListenableFuture<SendResult<String, GenericAvroMessage>> future = template.sendDefault(message);
         future.addCallback(new ListenableFutureCallback<>() {
             @Override
             public void onSuccess(SendResult<String, GenericAvroMessage> result) {
@@ -93,7 +108,7 @@ public class EmbeddedKafkaTestIT {
             .partitions(0)
             .keyDeserializer(kafkaAvroDeserializer)
             .valueDeserializer(kafkaAvroDeserializer)
-            .topic(TOPIC_NAME);
+            .topic("topic1");
 
         KafkaRecordItemReader<ConsumerRecord<Long, GenericAvroMessage>> reader = builder.build();
         reader.setPollTimeout(Duration.ofSeconds(1));

@@ -279,7 +279,7 @@ if (project.hasProperty("gae")) {
 
 tasks.withType(JavaCompile).configureEach {
     options.errorprone.disableWarningsInGeneratedCode = true
-    options.errorprone.excludedPaths = ".*/build/generated/.*"
+    options.errorprone.excludedPaths = ".*/build/generated(-main-avro-java)?/.*"
 }
 task cleanResources(type: Delete) {
     delete "build/resources"
