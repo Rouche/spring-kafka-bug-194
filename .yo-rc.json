@@ -1,0 +1,44 @@
+{
+  "generator-jhipster": {
+    "promptValues": {
+      "packageName": "ms.kafkatest",
+      "nativeLanguage": "fr"
+    },
+    "jhipsterVersion": "6.6.0",
+    "applicationType": "microservice",
+    "baseName": "KafkaTest",
+    "packageName": "ms.kafkatest",
+    "packageFolder": "ms/kafkatest",
+    "serverPort": "8084",
+    "authenticationType": "jwt",
+    "cacheProvider": "hazelcast",
+    "websocket": false,
+    "databaseType": "no",
+    "devDatabaseType": "no",
+    "prodDatabaseType": "no",
+    "enableHibernateCache": false,
+    "searchEngine": false,
+    "messageBroker": "kafka",
+    "serviceDiscoveryType": "eureka",
+    "buildTool": "gradle",
+    "enableSwaggerCodegen": false,
+    "testFrameworks": [],
+    "jhiPrefix": "jhi",
+    "entitySuffix": "",
+    "dtoSuffix": "DTO",
+    "otherModules": [],
+    "enableTranslation": true,
+    "clientPackageManager": "npm",
+    "nativeLanguage": "fr",
+    "languages": [
+      "fr",
+      "en"
+    ],
+    "blueprints": [],
+    "skipClient": true,
+    "skipUserManagement": true,
+    "jwtSecretKey": "NGIyZDMxOTIzN2RiMWNjNzlhMzRjZGZjNjBhMTJhNzJjZWU2NGE0Mjk3YzkxNjA3ZWFlZTViNTNmNmQxMThmNzU1YTRkNTYyOTQxZTY4ODE2Nzg1MDNiYjM3MWYyYzU4MDRiNThhZGUzNjU1YzI3YWIyYjc4MjM1NDc3ZmE5MTQ=",
+    "embeddableLaunchScript": false,
+    "creationTimestamp": 1579621225069
+  }
+}

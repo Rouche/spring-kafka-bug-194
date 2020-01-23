@@ -1,0 +1,293 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url "https://repo.spring.io/plugins-release" }
+    }
+    dependencies {
+        classpath "com.sun.istack:istack-commons-runtime:3.0.9"
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${spring_boot_version}"
+        classpath "gradle.plugin.com.google.cloud.tools:jib-gradle-plugin:${jib_plugin_version}"
+        classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:${git_properties_plugin_version}"
+        classpath "net.ltgt.gradle:gradle-apt-plugin:${apt_plugin_version}"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:${sonarqube_plugin_version}"
+        classpath "com.commercehub.gradle.plugin:gradle-avro-plugin:0.17.0"
+        classpath "io.freefair.gradle:lombok-plugin:${lombok_version}"
+        classpath "org.unbroken-dome.xjc:org.unbroken-dome.xjc.gradle.plugin:1.4.3"
+        classpath "net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:1.1.1"
+        //jhipster-needle-gradle-buildscript-dependency - JHipster will add additional gradle build script plugins here
+    }
+}
+
+plugins {
+    id "java"
+    id "maven-publish"
+    id "idea"
+    id "jacoco"
+    //jhipster-needle-gradle-plugins - JHipster will add additional gradle plugins here
+}
+
+group = 'ms.kafkatest'
+version = '0.0.1-SNAPSHOT'
+
+description = ""
+
+sourceCompatibility=11
+targetCompatibility=11
+assert System.properties["java.specification.version"] == "1.8" || "11" || "12" || "13"
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+apply plugin: "org.springframework.boot"
+apply plugin: "com.google.cloud.tools.jib"
+apply plugin: "com.gorylenko.gradle-git-properties"
+apply plugin: "net.ltgt.apt-eclipse"
+apply plugin: "net.ltgt.apt-idea"
+apply plugin: "net.ltgt.apt"
+apply plugin: "org.sonarqube"
+apply plugin: "com.commercehub.gradle.plugin.avro"
+apply plugin: "io.freefair.lombok"
+apply plugin: "org.unbroken-dome.xjc"
+apply plugin: "net.ltgt.errorprone"
+apply from: "gradle/sonar.gradle"
+apply from: 'gradle/publishing.gradle'
+//jhipster-needle-gradle-apply-from - JHipster will add additional gradle scripts to be applied here
+
+if (project.hasProperty("prod") || project.hasProperty("gae")) {
+    apply from: "gradle/profile_prod.gradle"
+} else {
+    apply from: "gradle/profile_dev.gradle"
+}
+
+if (project.hasProperty("war")) {
+    apply from: "gradle/war.gradle"
+}
+
+if (project.hasProperty("gae")) {
+    apply plugin: 'maven'
+    apply plugin: 'org.springframework.boot.experimental.thin-launcher'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom 'io.github.jhipster:jhipster-dependencies:${jhipster_dependencies_version}'
+        }
+    }
+    appengineStage.dependsOn thinResolve
+}
+
+if (project.hasProperty("zipkin")) {
+    apply from: "gradle/zipkin.gradle"
+}
+
+idea {
+    module {
+        excludeDirs += files("node_modules")
+    }
+}
+
+eclipse {
+    sourceSets {
+        main {
+            java {
+                srcDirs += ["build/generated/sources/annotationProcessor/java/main"]
+            }
+        }
+    }
+}
+
+defaultTasks "bootRun"
+
+springBoot {
+    mainClassName = "ms.kafkatest.KafkaTestApp"
+}
+
+test {
+    useJUnitPlatform()
+    exclude "**/*IT*", "**/*IntTest*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+    // uncomment if the tests reports are not generated
+    // see https://github.com/jhipster/generator-jhipster/pull/2771 and https://github.com/jhipster/generator-jhipster/pull/4484
+    ignoreFailures false
+    reports.html.enabled = true
+}
+
+task integrationTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute integration tests."
+    group = "verification"
+    include "**/*IT*", "**/*IntTest*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+    // uncomment if the tests reports are not generated
+    // see https://github.com/jhipster/generator-jhipster/pull/2771 and https://github.com/jhipster/generator-jhipster/pull/4484
+    ignoreFailures false
+    reports.html.enabled = true
+}
+
+check.dependsOn integrationTest
+task testReport(type: TestReport) {
+    destinationDir = file("$buildDir/reports/tests")
+    reportOn test
+}
+
+task integrationTestReport(type: TestReport) {
+    destinationDir = file("$buildDir/reports/tests")
+    reportOn integrationTest
+}
+
+
+gitProperties {
+    failOnNoGitDirectory = false
+    keys = ["git.branch", "git.commit.id.abbrev", "git.commit.id.describe"]
+}
+
+
+configurations {
+    providedRuntime
+    implementation.exclude module: "spring-boot-starter-tomcat"
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven {
+        url "http://packages.confluent.io/maven/"
+    }
+    //jhipster-needle-gradle-repositories - JHipster will add additional repositories
+}
+
+dependencies {
+    // import JHipster dependencies BOM
+    if (!project.hasProperty("gae")) {
+        implementation platform("io.github.jhipster:jhipster-dependencies:${jhipster_dependencies_version}") {
+            exclude group:"org.apache.kafka"
+        }
+    }
+
+    // Use ", version: jhipster_dependencies_version, changing: true" if you want
+    // to use a SNAPSHOT release instead of a stable release
+    implementation group: "io.github.jhipster", name: "jhipster-framework"
+    implementation "org.springframework.boot:spring-boot-starter-cache"
+    implementation "io.dropwizard.metrics:metrics-core"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "net.logstash.logback:logstash-logback-encoder"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-hppc"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+    implementation "com.fasterxml.jackson.core:jackson-annotations"
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation "com.fasterxml.jackson.module:jackson-module-afterburner"
+    implementation "com.hazelcast:hazelcast"
+    implementation "com.hazelcast:hazelcast-spring"
+    implementation "javax.cache:cache-api"
+    implementation "org.apache.commons:commons-lang3"
+    implementation "commons-io:commons-io"
+    implementation "javax.transaction:javax.transaction-api"
+    implementation "org.springframework.boot:spring-boot-loader-tools"
+    implementation "org.springframework.boot:spring-boot-starter-mail"
+    implementation "org.springframework.boot:spring-boot-starter-logging"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation "org.apache.kafka:kafka-clients"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation ("org.springframework.boot:spring-boot-starter-web") {
+        exclude module: "spring-boot-starter-tomcat"
+    }
+    implementation "org.springframework.boot:spring-boot-starter-undertow"
+    implementation "org.springframework.boot:spring-boot-starter-thymeleaf"
+    implementation "org.zalando:problem-spring-web"
+    implementation "org.springframework.cloud:spring-cloud-starter"
+    implementation "org.springframework.cloud:spring-cloud-starter-netflix-ribbon"
+    implementation "org.springframework.cloud:spring-cloud-starter-netflix-hystrix"
+    implementation "org.springframework.retry:spring-retry"
+    implementation "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client"
+    implementation "org.springframework.cloud:spring-cloud-starter-config"
+    implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
+    implementation "org.springframework.boot:spring-boot-starter-cloud-connectors"
+    implementation "org.springframework.security:spring-security-config"
+    implementation "org.springframework.security:spring-security-data"
+    implementation "org.springframework.security:spring-security-web"
+    implementation "io.jsonwebtoken:jjwt-api"
+    implementation "org.springframework.batch:spring-batch-core:${spring_batch_version}"
+    if (!project.hasProperty("gae")) {
+        runtimeOnly "io.jsonwebtoken:jjwt-impl"
+        runtimeOnly "io.jsonwebtoken:jjwt-jackson"
+    } else {
+        implementation "io.jsonwebtoken:jjwt-impl"
+        implementation "io.jsonwebtoken:jjwt-jackson"
+    }
+    implementation ("io.springfox:springfox-swagger2") {
+        exclude module: "mapstruct"
+    }
+    implementation "io.springfox:springfox-bean-validators"
+    implementation "org.mapstruct:mapstruct:${mapstruct_version}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct_version}"
+    annotationProcessor ("org.springframework.boot:spring-boot-configuration-processor:${spring_boot_version}") {
+        exclude group: "com.vaadin.external.google", module: "android-json"
+    }
+    testImplementation "com.jayway.jsonpath:json-path"
+    testImplementation ("org.springframework.boot:spring-boot-starter-test") {
+        exclude module: "junit"
+        exclude group: "com.vaadin.external.google", module: "android-json"
+    }
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "org.springframework.boot:spring-boot-test"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "com.tngtech.archunit:archunit-junit5-api:${archunit_junit5_version}"
+    testRuntimeOnly "com.tngtech.archunit:archunit-junit5-engine:${archunit_junit5_version}"
+    testImplementation "org.assertj:assertj-core"
+    testImplementation "junit:junit"
+    testImplementation "org.mockito:mockito-core"
+    testImplementation "org.hamcrest:hamcrest-library"
+    testImplementation "org.testcontainers:database-commons"
+    testImplementation "org.testcontainers:kafka"
+    implementation "org.springframework.kafka:spring-kafka"
+    implementation "io.confluent:kafka-avro-serializer:5.2.2"
+    implementation "org.apache.avro:avro:1.9.0"
+    implementation "org.glassfish.jaxb:jaxb-xjc:2.3.2"
+    implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
+    testImplementation "org.springframework.kafka:spring-kafka-test"
+    testImplementation "org.mockito:mockito-junit-jupiter:2.23.4"
+    testImplementation "io.confluent:kafka-schema-registry:5.2.2"
+    testImplementation "org.apache.curator:curator-test:4.2.0"
+    testImplementation "com.github.tomakehurst:wiremock-standalone:2.19.0"
+    errorprone "com.google.errorprone:error_prone_core:2.3.4"
+    //jhipster-needle-gradle-dependency - JHipster will add additional dependencies here
+    //ms-template-needle-start - MS Template will keep all dependencies between the start and end needles
+    //ms-template-needle-end - MS Template will keep all dependencies between the start and end needles
+}
+
+if (project.hasProperty("gae")) {
+    task createPom {
+        def basePath = 'build/resources/main/META-INF/maven'
+        doLast {
+            pom {
+                withXml(dependencyManagement.pomConfigurer)
+            }.writeTo("${basePath}/${project.group}/${project.name}/pom.xml")
+        }
+    }
+    bootJar.dependsOn = [createPom]
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone.disableWarningsInGeneratedCode = true
+    options.errorprone.excludedPaths = ".*/build/generated/.*"
+}
+task cleanResources(type: Delete) {
+    delete "build/resources"
+}
+
+wrapper {
+    gradleVersion = "6.0.1"
+}
+
+compileJava.dependsOn processResources
+processResources.dependsOn bootBuildInfo

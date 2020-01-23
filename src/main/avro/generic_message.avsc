@@ -1,0 +1,8 @@
+{
+  "namespace":"ms.kafkatest.messaging.avro",
+  "type": "record",
+  "name": "GenericAvroMessage",
+  "fields": [
+    {"name": "payload", "type": "string"}
+  ]
+}

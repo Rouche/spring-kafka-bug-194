@@ -1,0 +1,10 @@
+{
+  "namespace":"ms.kafkatest.messaging.response",
+  "type": "record",
+  "name": "AsyncResponse",
+  "fields":
+  [
+    {"name": "warnings", "type": ["null", {"type": "array", "items": "AsyncError"}], "default": null},
+    {"name": "errors", "type": ["null", {"type": "array", "items": "AsyncError"}], "default": null}
+  ]
+}
